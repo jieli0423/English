@@ -1,11 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
+const FETCH_TIMEOUT = 35000
+
 async function fetchAPI(endpoint, body) {
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+
+  let res
+  try {
+    res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+  } catch (err) {
+    clearTimeout(timeoutId)
+    if (err.name === 'AbortError') {
+      throw new Error('请求超时，AI 响应时间过长，请稍后重试')
+    }
+    throw new Error('网络连接失败，请检查网络或稍后重试')
+  }
+  clearTimeout(timeoutId)
 
   let data
   try {

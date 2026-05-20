@@ -89,9 +89,9 @@ export function mockWordAnalysis(word) {
 
 // API 状态消息
 export const API_MESSAGES = {
-  noKey: '未配置 API Key。请在项目根目录创建 .env 文件并设置 DEEPSEEK_API_KEY=你的密钥，然后重启服务端。',
-  networkError: '网络连接失败，请检查服务端是否启动（npm run dev:server）',
+  noKey: '服务未配置 API Key，请联系管理员配置 DEEPSEEK_API_KEY',
+  networkError: '网络连接失败，请检查网络后稍后重试',
   parseError: 'AI 返回数据格式异常，请重试',
   serverError: '服务端错误，请稍后重试',
-  fallback: '已使用示例数据展示结果（API 未配置或请求失败）',
+  fallback: 'AI 服务暂时不可用，已使用示例数据展示结果',
 }
