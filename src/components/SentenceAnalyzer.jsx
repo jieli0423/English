@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { sentenceLibrary } from '../data/mockData'
+import { analyzeSentence } from '../services/api'
+import { API_MESSAGES } from '../services/prompts'
 import AnalyzerResult from './AnalyzerResult'
 import PageHeader from './ui/PageHeader'
 
@@ -12,6 +14,27 @@ const analysisSteps = [
   { label: '正在生成中文翻译...', key: 'translation' },
 ]
 
+function getMockFallback(text) {
+  const found = sentenceLibrary.find((s) => s.sentence.trim() === text.trim())
+  if (found) {
+    return { data: found.analysis, isMock: false }
+  }
+  return {
+    data: {
+      main: '无法精确解析自定义句子，请选择下方的例句进行体验。',
+      clauses: [],
+      modifiers: [],
+      keyWords: [],
+      translation: '（自定义输入暂不支持深度解析，请选择预设例句）',
+      examTips: [
+        { tip: '建议选择左侧预设例句体验完整解析功能', type: '提示' },
+        { tip: '自定义解析功能即将上线，敬请期待', type: '提示' },
+      ],
+    },
+    isMock: false,
+  }
+}
+
 export default function SentenceAnalyzer() {
   const [input, setInput] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
@@ -19,16 +42,16 @@ export default function SentenceAnalyzer() {
   const [selectedExample, setSelectedExample] = useState(null)
   const [error, setError] = useState('')
   const [currentStep, setCurrentStep] = useState(-1)
+  const [usingFallback, setUsingFallback] = useState(false)
 
-  const doAnalyze = (text) => {
+  const doAnalyze = async (text) => {
     setAnalyzing(true)
     setResult(null)
     setCurrentStep(0)
     setError('')
+    setUsingFallback(false)
 
-    const found = sentenceLibrary.find((s) => s.sentence.trim() === text.trim())
-
-    // Step-by-step progress: advance through steps every 400ms
+    // Start step animation
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev < analysisSteps.length - 1) return prev + 1
@@ -37,27 +60,40 @@ export default function SentenceAnalyzer() {
       })
     }, 400)
 
-    setTimeout(() => {
+    try {
+      const data = await analyzeSentence(text)
       clearInterval(stepInterval)
       setCurrentStep(analysisSteps.length)
-      if (found) {
-        setResult(found.analysis)
+
+      // Ensure arrays exist for component compatibility
+      setResult({
+        main: data.main || '',
+        clauses: data.clauses || [],
+        modifiers: data.modifiers || [],
+        keyWords: data.keyWords || [],
+        translation: data.translation || '',
+        examTips: data.examTips || [],
+      })
+    } catch (err) {
+      clearInterval(stepInterval)
+      setCurrentStep(analysisSteps.length)
+
+      if (err.needConfig || err.status === 503) {
+        setError(API_MESSAGES.noKey)
+      } else if (err.status === 502) {
+        setError(err.message || API_MESSAGES.serverError)
       } else {
-        setResult({
-          main: '无法精确解析自定义句子，请选择下方的例句进行体验。',
-          clauses: [],
-          modifiers: [],
-          keyWords: [],
-          translation: '（自定义输入暂不支持深度解析，请选择预设例句）',
-          examTips: [
-            { tip: '建议选择左侧预设例句体验完整解析功能', type: '提示' },
-            { tip: '自定义解析功能即将上线，敬请期待', type: '提示' },
-          ],
-        })
+        setError(API_MESSAGES.networkError)
       }
+
+      // Fallback to mock data
+      const fallback = getMockFallback(text)
+      setResult(fallback.data)
+      setUsingFallback(true)
+    } finally {
       setAnalyzing(false)
       setCurrentStep(-1)
-    }, 2800)
+    }
   }
 
   const handleAnalyze = () => {
@@ -96,6 +132,7 @@ export default function SentenceAnalyzer() {
     setInput(item.sentence)
     setResult(null)
     setError('')
+    setUsingFallback(false)
   }
 
   return (
@@ -103,7 +140,7 @@ export default function SentenceAnalyzer() {
       <PageHeader
         icon="🔍"
         title="AI 长难句解析"
-        subtitle="基于深度学习的长难句语法分析，一键拆解句子结构"
+        subtitle="基于 DeepSeek 大模型的长难句语法分析，一键拆解句子结构"
       />
 
       {/* Input Area */}
@@ -113,7 +150,7 @@ export default function SentenceAnalyzer() {
         </label>
         <textarea
           value={input}
-          onChange={(e) => { setInput(e.target.value); setError('') }}
+          onChange={(e) => { setInput(e.target.value); setError(''); setUsingFallback(false) }}
           placeholder="粘贴或输入考研英语长难句..."
           className="input-area min-h-[120px] text-sm leading-relaxed resize-y"
           rows={4}
@@ -239,11 +276,21 @@ export default function SentenceAnalyzer() {
 
       {/* Result */}
       {result && !analyzing && (
-        <AnalyzerResult
-          result={result}
-          onRegenerate={handleRegenerate}
-          onCopy={handleCopy}
-        />
+        <>
+          {usingFallback && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-sm text-amber-700">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span>{API_MESSAGES.fallback}</span>
+            </div>
+          )}
+          <AnalyzerResult
+            result={result}
+            onRegenerate={handleRegenerate}
+            onCopy={handleCopy}
+          />
+        </>
       )}
 
       {/* Empty State */}
@@ -252,7 +299,7 @@ export default function SentenceAnalyzer() {
           <div className="text-5xl mb-4">🔬</div>
           <h3 className="text-lg font-semibold text-slate-700 mb-2">等待解析</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            在上方输入框中粘贴考研英语长难句，或选择一个预设例句，点击"开始解析"即可查看 AI 分析结果
+            在上方输入框中粘贴考研英语长难句，或选择一个预设例句，点击"开始解析"即可调用 DeepSeek AI 分析结果
           </p>
         </div>
       )}

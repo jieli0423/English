@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { writingData, mockWritingReview } from '../data/mockData'
+import { reviewWriting } from '../services/api'
+import { API_MESSAGES } from '../services/prompts'
 import WritingFeedback from './WritingFeedback'
 import PageHeader from './ui/PageHeader'
 
@@ -17,11 +19,15 @@ export default function WritingReview() {
   const [reviewing, setReviewing] = useState(false)
   const [result, setResult] = useState(null)
   const [currentStep, setCurrentStep] = useState(-1)
+  const [error, setError] = useState('')
+  const [usingFallback, setUsingFallback] = useState(false)
 
-  const doReview = () => {
+  const doReview = async () => {
     if (!essay.trim()) return
     setReviewing(true)
     setResult(null)
+    setError('')
+    setUsingFallback(false)
     setCurrentStep(0)
 
     const stepInterval = setInterval(() => {
@@ -32,13 +38,39 @@ export default function WritingReview() {
       })
     }, 350)
 
-    setTimeout(() => {
+    try {
+      const data = await reviewWriting(essay)
       clearInterval(stepInterval)
       setCurrentStep(reviewSteps.length)
+
+      setResult({
+        score: data.score ?? mockWritingReview.score,
+        totalScore: data.totalScore ?? mockWritingReview.totalScore,
+        level: data.level || mockWritingReview.level,
+        grammarIssues: data.grammarIssues || [],
+        improvements: data.improvements || [],
+        revisedEssay: data.revisedEssay || '',
+        overallAdvice: data.overallAdvice || '',
+      })
+    } catch (err) {
+      clearInterval(stepInterval)
+      setCurrentStep(reviewSteps.length)
+
+      if (err.needConfig || err.status === 503) {
+        setError(API_MESSAGES.noKey)
+      } else if (err.status === 502) {
+        setError(err.message || API_MESSAGES.serverError)
+      } else {
+        setError(API_MESSAGES.networkError)
+      }
+
+      // Fallback to mock review
       setResult(mockWritingReview)
+      setUsingFallback(true)
+    } finally {
       setReviewing(false)
       setCurrentStep(-1)
-    }, 2400)
+    }
   }
 
   const handleReview = () => {
@@ -56,6 +88,7 @@ export default function WritingReview() {
       '== 语法问题 ==',
       ...res.grammarIssues.map((g) => `[${g.severity === 'major' ? '严重' : '轻微'}] ${g.type}: ${g.original} → ${g.suggestion}`),
       '',
+      ...(res.overallAdvice ? [`整体建议：${res.overallAdvice}`, ''] : []),
       '== 高级替换 ==',
       ...res.improvements.map((imp) => `${imp.original} → ${imp.advanced}（${imp.note}）`),
       '',
@@ -68,6 +101,8 @@ export default function WritingReview() {
   const loadSample = () => {
     setEssay(writingData.sampleEssay)
     setResult(null)
+    setError('')
+    setUsingFallback(false)
   }
 
   return (
@@ -112,7 +147,7 @@ export default function WritingReview() {
             </div>
             <textarea
               value={essay}
-              onChange={(e) => setEssay(e.target.value)}
+              onChange={(e) => { setEssay(e.target.value); setError(''); setUsingFallback(false) }}
               placeholder="在此粘贴或输入你的作文..."
               className="input-area min-h-[350px] text-sm leading-relaxed resize-y"
               rows={12}
@@ -152,6 +187,14 @@ export default function WritingReview() {
                 )}
               </button>
             </div>
+            {error && (
+              <p className="text-red-500 text-sm mt-3 flex items-center gap-1.5">
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </p>
+            )}
           </div>
         </div>
 
@@ -216,11 +259,21 @@ export default function WritingReview() {
           )}
 
           {result && !reviewing && (
-            <WritingFeedback
-              result={result}
-              onRegenerate={handleRegenerate}
-              onCopy={handleCopy}
-            />
+            <>
+              {usingFallback && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-sm text-amber-700">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span>{API_MESSAGES.fallback}</span>
+                </div>
+              )}
+              <WritingFeedback
+                result={result}
+                onRegenerate={handleRegenerate}
+                onCopy={handleCopy}
+              />
+            </>
           )}
 
           {!result && !reviewing && (
