@@ -318,6 +318,89 @@ app.post('/api/analyze-reading', async (req, res) => {
   }
 })
 
+app.post('/api/analyze-word', async (req, res) => {
+  const { word, meaning, phonetic, example } = req.body
+  if (!word || !word.trim()) {
+    return res.status(400).json({ error: '缺少单词信息' })
+  }
+
+  if (!API_KEY) {
+    return res.status(503).json({
+      error: '服务未配置 API Key，请检查 .env 文件中的 DEEPSEEK_API_KEY',
+      needConfig: true,
+    })
+  }
+
+  const wordInfo = JSON.stringify({ word, meaning, phonetic, example }, null, 2)
+
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: `你是一名顶级的考研英语词汇教学专家。请分析用户提供的考研英语单词，并严格按以下 JSON 格式返回（不要包含 markdown 代码块标记）：
+
+{
+  "chineseMeaning": "中文释义（精确到考研常考义项）",
+  "examMeanings": ["考研常见含义1", "考研常见含义2", "考研常见含义3"],
+  "rootAnalysis": "词根词缀分析（拆解词根、前缀、后缀，说明如何推导出词义）",
+  "exampleSentence": "考研真题风格例句（英文）",
+  "exampleTranslation": "例句中文翻译",
+  "confusingWords": [
+    { "word": "易混词", "meaning": "含义", "difference": "与目标词的区别" }
+  ],
+  "mnemonic": "联想记忆法（有趣、易记的联想方式，帮助记忆）",
+  "collocations": ["常用搭配1", "常用搭配2", "常用搭配3", "常用搭配4"],
+  "writingUsage": "写作可用表达（说明该词在考研写作中如何应用，给出具体句型）"
+}
+
+注意：
+- 考研常见含义要列出 2-4 个高频义项
+- 易混词辨析要说明核心区别
+- 联想记忆法要具体、好记
+- 写作可用表达要给出可直接套用的句型模板
+- 所有中文解释要准确、适合考研学生理解`
+          },
+          { role: 'user', content: wordInfo },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        max_tokens: 2048,
+      }),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('DeepSeek API error:', response.status, errText)
+      return res.status(502).json({ error: `DeepSeek API 返回错误 (${response.status})` })
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+
+    if (!content) {
+      return res.status(502).json({ error: 'DeepSeek API 返回内容为空' })
+    }
+
+    try {
+      const parsed = safeJSONParse(content)
+      res.json(parsed)
+    } catch {
+      return res.status(502).json({ error: 'AI 返回格式异常，请重试' })
+    }
+  } catch (err) {
+    console.error('Request failed:', err.message)
+    res.status(502).json({ error: `请求 DeepSeek API 失败：${err.message}` })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`✓ API proxy server running on http://localhost:${PORT}`)
   if (!API_KEY) {

@@ -60,6 +60,33 @@ export const mockReadingAnalysis = {
   ],
 }
 
+// AI 单词精讲 Mock 降级数据
+export function mockWordAnalysis(word) {
+  const rootMap = {
+    'significant': { root: 'sign（标记）+ i + fic（做）+ ant（形容词后缀）→ 做出标记的 → 显著的', mnemonic: 'sign（标记）是核心词根，想想"交通标志"——能让你注意到的就是 significant（重要的）。' },
+    'inevitable': { root: 'in（不）+ evit（避免）+ able（可…的）→ 不可避免的', mnemonic: 'in（不）+ evitable（可避免的）→ 不可避免的。想象"不管你怎么躲都躲不掉"的场景。' },
+  }
+  const match = rootMap[word.toLowerCase()]
+  return {
+    chineseMeaning: '重要的；有意义的；显著的',
+    examMeanings: ['重要的，重大的（考研阅读高频）', '显著的，明显的（图表描述常用）', '有意义的，意味深长的'],
+    rootAnalysis: match?.root || '由词根 + 词缀构成，建议参考词根词典',
+    exampleSentence: `The ${word} progress made in the field of artificial intelligence has attracted widespread attention from researchers worldwide.`,
+    exampleTranslation: `${word.charAt(0).toUpperCase() + word.slice(1)} 领域取得的重大进展引起了全球研究人员的广泛关注。`,
+    confusingWords: [
+      { word: word + 'ly', meaning: 'adv. 明显地', difference: '副词形式，修饰动词或形容词' },
+    ],
+    mnemonic: match?.mnemonic || `将「${word}」拆解成你熟悉的部分来记忆，或者联想一个包含该词的生活场景。`,
+    collocations: [
+      `${word} progress — 重大进步`,
+      `${word} impact — 重大影响`,
+      `${word} role — 重要作用`,
+      `${word} difference — 显著差异`,
+    ],
+    writingUsage: `在考研写作中，「${word}」常用于强调重要性，如："Play a ${word} role in..."（在…中起重要作用）。图表描述中可用"There was a ${word} increase in..."（在…方面有显著增长）。`,
+  }
+}
+
 // API 状态消息
 export const API_MESSAGES = {
   noKey: '未配置 API Key。请在项目根目录创建 .env 文件并设置 DEEPSEEK_API_KEY=你的密钥，然后重启服务端。',

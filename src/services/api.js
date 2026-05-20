@@ -74,3 +74,23 @@ export async function analyzeReading(passage, questions) {
   const raw = await fetchAPI('analyze-reading', { passage, questions })
   return normalizeReadingAnalysis(raw)
 }
+
+function normalizeWordAnalysis(data) {
+  if (!data || typeof data !== 'object') throw new Error('无效的单词分析结果')
+  return {
+    chineseMeaning: data.chineseMeaning || '',
+    examMeanings: Array.isArray(data.examMeanings) ? data.examMeanings : [],
+    rootAnalysis: data.rootAnalysis || '',
+    exampleSentence: data.exampleSentence || '',
+    exampleTranslation: data.exampleTranslation || '',
+    confusingWords: Array.isArray(data.confusingWords) ? data.confusingWords : [],
+    mnemonic: data.mnemonic || '',
+    collocations: Array.isArray(data.collocations) ? data.collocations : [],
+    writingUsage: data.writingUsage || '',
+  }
+}
+
+export async function analyzeWord(word, meaning, phonetic, example) {
+  const raw = await fetchAPI('analyze-word', { word, meaning, phonetic, example })
+  return normalizeWordAnalysis(raw)
+}
