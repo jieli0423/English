@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function ReadingAnalysis({ analysis, onRegenerate, onCopy }) {
+export default function ReadingAnalysis({ analysis, onRegenerate }) {
   const [copyText, setCopyText] = useState('复制分析')
   const [expandedTips, setExpandedTips] = useState(false)
 

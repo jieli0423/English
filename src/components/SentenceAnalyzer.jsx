@@ -17,21 +17,18 @@ const analysisSteps = [
 function getMockFallback(text) {
   const found = sentenceLibrary.find((s) => s.sentence.trim() === text.trim())
   if (found) {
-    return { data: found.analysis, isMock: false }
+    return found.analysis
   }
   return {
-    data: {
-      main: '无法精确解析自定义句子，请选择下方的例句进行体验。',
-      clauses: [],
-      modifiers: [],
-      keyWords: [],
-      translation: '（自定义输入暂不支持深度解析，请选择预设例句）',
-      examTips: [
-        { tip: '建议选择左侧预设例句体验完整解析功能', type: '提示' },
-        { tip: '自定义解析功能即将上线，敬请期待', type: '提示' },
-      ],
-    },
-    isMock: false,
+    main: '无法精确解析自定义句子，请选择下方的例句进行体验。',
+    clauses: [],
+    modifiers: [],
+    keyWords: [],
+    translation: '（自定义输入暂不支持深度解析，请选择预设例句）',
+    examTips: [
+      { tip: '建议选择左侧预设例句体验完整解析功能', type: '提示' },
+      { tip: '自定义解析功能即将上线，敬请期待', type: '提示' },
+    ],
   }
 }
 
@@ -87,8 +84,7 @@ export default function SentenceAnalyzer() {
       }
 
       // Fallback to mock data
-      const fallback = getMockFallback(text)
-      setResult(fallback.data)
+      setResult(getMockFallback(text))
       setUsingFallback(true)
     } finally {
       setAnalyzing(false)

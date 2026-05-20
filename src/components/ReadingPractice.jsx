@@ -13,7 +13,7 @@ export default function ReadingPractice() {
   const [submittedSet, setSubmittedSet] = useState(new Set())
   const [currentQ, setCurrentQ] = useState(0)
   const [allDone, setAllDone] = useState(false)
-  const [startTime] = useState(Date.now())
+  const [startTime, setStartTime] = useState(Date.now())
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
 
@@ -55,17 +55,19 @@ export default function ReadingPractice() {
   }
 
   const handleReset = () => {
+    const now = Date.now()
     setAnswers({})
     setSubmittedSet(new Set())
     setCurrentQ(0)
     setAllDone(false)
     setElapsed(0)
+    setStartTime(now)
     setAnalysis(null)
     setAnalysisError('')
     setUsingFallback(false)
     clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000))
+      setElapsed(Math.floor((Date.now() - now) / 1000))
     }, 1000)
   }
 
@@ -109,27 +111,6 @@ export default function ReadingPractice() {
 
   const handleRegenerateAnalysis = () => {
     handleAnalyzeReading()
-  }
-
-  const handleCopyAnalysis = () => {
-    if (!analysis) return
-    const text = [
-      '=== 文章结构分析 ===',
-      analysis.structure,
-      '',
-      '=== 段落主旨 ===',
-      ...(analysis.paragraphSummaries || []).map((p) => `第 ${p.index} 段：${p.summary}`),
-      '',
-      '=== 题目精讲 ===',
-      ...(analysis.questionAnalysis || []).map(
-        (q) =>
-          `第 ${q.questionIndex} 题（${q.type}）：\n定位句：${q.locatingSentence}\n正确答案：${q.correctAnswer}\n解析：${q.explanation}\n错因分析：${q.errorAnalysis}\n技巧：${q.tips}`
-      ),
-      '',
-      '=== 解题技巧 ===',
-      ...(analysis.generalTips || []),
-    ].join('\n\n')
-    navigator.clipboard.writeText(text)
   }
 
   // Correct count among submitted
@@ -220,7 +201,6 @@ export default function ReadingPractice() {
             <ReadingAnalysis
               analysis={analysis}
               onRegenerate={handleRegenerateAnalysis}
-              onCopy={handleCopyAnalysis}
             />
           </div>
         )}
