@@ -37,6 +37,38 @@ function buildSystemPrompt(type) {
 - translation 给出通顺的中文翻译`
   }
 
+  if (type === 'analyze-reading') {
+    return `你是一名顶级的考研英语阅读讲解专家。请分析用户提供的阅读文章和题目，并严格按以下 JSON 格式返回（不要包含 markdown 代码块标记）：
+
+{
+  "structure": "文章整体结构分析（中文，2-3句话概括行文脉络）",
+  "paragraphSummaries": [
+    { "index": 1, "summary": "第一段主旨大意（中文）" },
+    { "index": 2, "summary": "第二段主旨大意（中文）" }
+  ],
+  "questionAnalysis": [
+    {
+      "questionIndex": 1,
+      "type": "题目类型",
+      "locatingSentence": "该题在原文中的定位句（英文原文）",
+      "correctAnswer": "正确选项字母（A/B/C/D）",
+      "explanation": "为什么选这个选项（中文详细解析）",
+      "errorAnalysis": "常见错误选项分析（中文）",
+      "tips": "该类题型的解题技巧（中文）"
+    }
+  ],
+  "generalTips": [
+    "考研阅读通用技巧1",
+    "考研阅读通用技巧2"
+  ]
+}
+
+注意：
+- 仔细分析每道题的原文定位句，确保定位准确
+- 解析要详细，适合中国考研学生理解
+- 解题技巧要具体、可操作`
+  }
+
   if (type === 'review-writing') {
     return `你是一名专业的考研英语作文批改专家。请分析用户输入的英语作文，并严格按以下 JSON 格式返回（不要包含 markdown 代码块标记）：
 
@@ -149,6 +181,67 @@ app.post('/api/review-writing', async (req, res) => {
         messages: [
           { role: 'system', content: buildSystemPrompt('review-writing') },
           { role: 'user', content: essay },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3,
+        max_tokens: 4096,
+      }),
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('DeepSeek API error:', response.status, errText)
+      return res.status(502).json({ error: `DeepSeek API 返回错误 (${response.status})` })
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+
+    if (!content) {
+      return res.status(502).json({ error: 'DeepSeek API 返回内容为空' })
+    }
+
+    let parsed
+    try {
+      parsed = JSON.parse(content)
+    } catch {
+      return res.status(502).json({ error: 'AI 返回格式异常，请重试' })
+    }
+
+    res.json(parsed)
+  } catch (err) {
+    console.error('Request failed:', err.message)
+    res.status(502).json({ error: `请求 DeepSeek API 失败：${err.message}` })
+  }
+})
+
+app.post('/api/analyze-reading', async (req, res) => {
+  const { passage, questions } = req.body
+  if (!passage || !questions || !Array.isArray(questions)) {
+    return res.status(400).json({ error: '缺少阅读文章或题目数据' })
+  }
+
+  if (!API_KEY) {
+    return res.status(503).json({
+      error: '服务未配置 API Key，请检查 .env 文件中的 DEEPSEEK_API_KEY',
+      needConfig: true,
+    })
+  }
+
+  try {
+    const userContent = JSON.stringify({ passage, questions }, null, 2)
+
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: buildSystemPrompt('analyze-reading') },
+          { role: 'user', content: userContent },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.3,

@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { readingData } from '../data/mockData'
+import { analyzeReading } from '../services/api'
+import { API_MESSAGES, mockReadingAnalysis } from '../services/prompts'
 import ReadingQuestion from './ReadingQuestion'
+import ReadingAnalysis from './ReadingAnalysis'
 import PageHeader from './ui/PageHeader'
 
 export default function ReadingPractice() {
@@ -13,6 +16,12 @@ export default function ReadingPractice() {
   const [startTime] = useState(Date.now())
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
+
+  // AI analysis state
+  const [analysis, setAnalysis] = useState(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
+  const [usingFallback, setUsingFallback] = useState(false)
 
   const questions = passage.questions
   const totalQ = questions.length
@@ -27,7 +36,6 @@ export default function ReadingPractice() {
   }, [startTime])
 
   const handleSelect = (qId, optionIdx) => {
-    // If already submitted this question, ignore
     if (submittedSet.has(qId)) return
     setAnswers((prev) => ({ ...prev, [qId]: optionIdx }))
     setSubmittedSet((prev) => new Set(prev).add(qId))
@@ -52,10 +60,76 @@ export default function ReadingPractice() {
     setCurrentQ(0)
     setAllDone(false)
     setElapsed(0)
+    setAnalysis(null)
+    setAnalysisError('')
+    setUsingFallback(false)
     clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000))
     }, 1000)
+  }
+
+  // AI Reading Analysis
+  const handleAnalyzeReading = async () => {
+    setAnalyzing(true)
+    setAnalysis(null)
+    setAnalysisError('')
+    setUsingFallback(false)
+
+    try {
+      const data = await analyzeReading(
+        passage.paragraphs.join('\n\n'),
+        questions.map((q) => ({
+          index: q.id,
+          type: q.type,
+          question: q.question,
+          options: q.options,
+        }))
+      )
+      setAnalysis({
+        structure: data.structure || '',
+        paragraphSummaries: data.paragraphSummaries || [],
+        questionAnalysis: data.questionAnalysis || [],
+        generalTips: data.generalTips || [],
+      })
+    } catch (err) {
+      if (err.needConfig || err.status === 503) {
+        setAnalysisError(API_MESSAGES.noKey)
+      } else if (err.status === 502) {
+        setAnalysisError(err.message || API_MESSAGES.serverError)
+      } else {
+        setAnalysisError(API_MESSAGES.networkError)
+      }
+      setAnalysis(mockReadingAnalysis)
+      setUsingFallback(true)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const handleRegenerateAnalysis = () => {
+    handleAnalyzeReading()
+  }
+
+  const handleCopyAnalysis = () => {
+    if (!analysis) return
+    const text = [
+      '=== 文章结构分析 ===',
+      analysis.structure,
+      '',
+      '=== 段落主旨 ===',
+      ...(analysis.paragraphSummaries || []).map((p) => `第 ${p.index} 段：${p.summary}`),
+      '',
+      '=== 题目精讲 ===',
+      ...(analysis.questionAnalysis || []).map(
+        (q) =>
+          `第 ${q.questionIndex} 题（${q.type}）：\n定位句：${q.locatingSentence}\n正确答案：${q.correctAnswer}\n解析：${q.explanation}\n错因分析：${q.errorAnalysis}\n技巧：${q.tips}`
+      ),
+      '',
+      '=== 解题技巧 ===',
+      ...(analysis.generalTips || []),
+    ].join('\n\n')
+    navigator.clipboard.writeText(text)
   }
 
   // Correct count among submitted
@@ -132,6 +206,47 @@ export default function ReadingPractice() {
           </div>
         </div>
 
+        {/* AI Analysis */}
+        {analysis && (
+          <div className="mb-6">
+            {usingFallback && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-sm text-amber-700">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>{API_MESSAGES.fallback}</span>
+              </div>
+            )}
+            <ReadingAnalysis
+              analysis={analysis}
+              onRegenerate={handleRegenerateAnalysis}
+              onCopy={handleCopyAnalysis}
+            />
+          </div>
+        )}
+
+        {analyzing && (
+          <div className="card p-8 sm:p-10 mb-6">
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full border-[3px] border-indigo-100 border-t-indigo-600 animate-spin mx-auto mb-5" />
+              <p className="text-slate-600 font-medium">AI 正在精讲阅读...</p>
+              <p className="text-slate-400 text-sm mt-2">正在分析文章结构和解题思路</p>
+            </div>
+          </div>
+        )}
+
+        {!analysis && !analyzing && (
+          <div className="card p-6 mb-6 text-center">
+            <p className="text-sm text-slate-500 mb-4">想要更深入地理解这篇文章吗？让 AI 为你逐题精讲。</p>
+            <button onClick={handleAnalyzeReading} className="btn-primary flex items-center gap-2 mx-auto">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              AI 智能精讲
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button onClick={handleReset} className="btn-primary flex-1 flex items-center justify-center gap-2 py-3">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +275,7 @@ export default function ReadingPractice() {
         }
       />
 
-      {/* Stats Bar: timer + progress + accuracy */}
+      {/* Stats Bar: timer + progress + accuracy + AI button */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-sm">
           <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +297,28 @@ export default function ReadingPractice() {
             </span>
           </div>
         )}
+        <button
+          onClick={handleAnalyzeReading}
+          disabled={analyzing}
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-50"
+        >
+          {analyzing ? (
+            <>
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              分析中...
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              AI 精讲
+            </>
+          )}
+        </button>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
@@ -198,6 +335,45 @@ export default function ReadingPractice() {
               ))}
             </div>
           </div>
+
+          {/* AI Analysis section below article */}
+          {analysis && (
+            <div className="mt-6">
+              {usingFallback && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-sm text-amber-700">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span>{API_MESSAGES.fallback}</span>
+                </div>
+              )}
+              <ReadingAnalysis
+                analysis={analysis}
+                onRegenerate={handleRegenerateAnalysis}
+                onCopy={handleCopyAnalysis}
+              />
+            </div>
+          )}
+
+          {/* AI Analysis loading */}
+          {analyzing && (
+            <div className="card p-8 sm:p-10 mt-6">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full border-[3px] border-indigo-100 border-t-indigo-600 animate-spin mx-auto mb-5" />
+                <p className="text-slate-600 font-medium">AI 正在精讲阅读...</p>
+                <p className="text-slate-400 text-sm mt-2">正在分析文章结构和解题思路</p>
+              </div>
+            </div>
+          )}
+
+          {analysisError && !analysis && (
+            <div className="card p-6 mt-6 text-center">
+              <p className="text-sm text-red-500 mb-3">{analysisError}</p>
+              <button onClick={handleAnalyzeReading} className="btn-secondary">
+                重试
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Questions Panel */}

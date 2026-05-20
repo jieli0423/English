@@ -26,3 +26,7 @@ export async function analyzeSentence(sentence) {
 export async function reviewWriting(essay) {
   return fetchAPI('review-writing', { essay })
 }
+
+export async function analyzeReading(passage, questions) {
+  return fetchAPI('analyze-reading', { passage, questions })
+}
