@@ -248,6 +248,11 @@ export const sentenceLibrary = [
       ],
       translation:
         '虽然人工智能的广泛采纳无疑为从医疗到金融等各个领域带来了前所未有的便利和效率，但人们对其对就业和社会不平等的潜在影响的担忧已日益突出，尤其是在数字鸿沟依然严峻的发展中国家。',
+      examTips: [
+        { tip: '让步状语从句 "While..." 的翻译技巧：译为"虽然…但…"，注意主句与从句的逻辑转折关系', type: '翻译技巧' },
+        { tip: '"ranging from... to..." 是现在分词短语作定语，相当于 "which range from... to..."', type: '语法考点' },
+        { tip: '"where" 引导定语从句修饰 "developing countries"，注意区分 where 定语从句与地点状语从句', type: '高频考点' },
+      ],
     },
   },
   {
@@ -274,6 +279,11 @@ export const sentenceLibrary = [
       ],
       translation:
         '可持续发展理念出现于20世纪末，是对日益增长的环境关切的回应，它呼吁采取一种兼顾经济增长、社会公平和环境保护的平衡方法，认识到这三个方面是密不可分、相互促进的。',
+      examTips: [
+        { tip: '非限制性定语从句 "which..." 的翻译：通常译为并列句或独立句，不采用"…的"结构前置', type: '翻译技巧' },
+        { tip: '"calls for" 是考研高频动词短语，意为"呼吁，要求"，同义替换：demands, requires', type: '高频考点' },
+        { tip: '"recognizing that..." 是现在分词作伴随状语，其逻辑主语为句子的主语 "The concept"', type: '语法考点' },
+      ],
     },
   },
   {
@@ -300,6 +310,11 @@ export const sentenceLibrary = [
       ],
       translation:
         '虽然人们普遍认为互联网彻底改变了我们沟通和获取信息的方式，但关于它对社交关系的整体影响是有益还是有害仍存在相当大的争论——一些人认为它促进了有意义的联系，而另一些人则主张它削弱了面对面的交流。',
+      examTips: [
+        { tip: '"Although it is generally accepted that..." 是考研写作高频句式，可用于引出对立观点', type: '写作应用' },
+        { tip: '"whether...or..." 引导的介词宾语从句作 debate 的定语，注意 whether 不可替换为 if', type: '高频考点' },
+        { tip: '"with some arguing... while others contend..." 是独立主格结构作伴随状语，考研阅读常见', type: '语法考点' },
+      ],
     },
   },
 ]

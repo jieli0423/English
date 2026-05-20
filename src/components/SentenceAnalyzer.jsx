@@ -3,25 +3,43 @@ import { sentenceLibrary } from '../data/mockData'
 import AnalyzerResult from './AnalyzerResult'
 import PageHeader from './ui/PageHeader'
 
+const analysisSteps = [
+  { label: '正在识别句子主干...', key: 'main' },
+  { label: '正在分析从句结构...', key: 'clauses' },
+  { label: '正在提取修饰成分...', key: 'modifiers' },
+  { label: '正在标记重点词汇...', key: 'keywords' },
+  { label: '正在标注考点...', key: 'examTips' },
+  { label: '正在生成中文翻译...', key: 'translation' },
+]
+
 export default function SentenceAnalyzer() {
   const [input, setInput] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
   const [selectedExample, setSelectedExample] = useState(null)
   const [error, setError] = useState('')
+  const [currentStep, setCurrentStep] = useState(-1)
 
-  const handleAnalyze = () => {
-    const text = input.trim() || (selectedExample && selectedExample.sentence) || ''
-    if (!text) {
-      setError('请输入要分析的英文句子')
-      return
-    }
-    setError('')
+  const doAnalyze = (text) => {
     setAnalyzing(true)
     setResult(null)
+    setCurrentStep(0)
+    setError('')
+
+    const found = sentenceLibrary.find((s) => s.sentence.trim() === text.trim())
+
+    // Step-by-step progress: advance through steps every 400ms
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < analysisSteps.length - 1) return prev + 1
+        clearInterval(stepInterval)
+        return prev
+      })
+    }, 400)
 
     setTimeout(() => {
-      const found = sentenceLibrary.find((s) => s.sentence.trim() === text.trim())
+      clearInterval(stepInterval)
+      setCurrentStep(analysisSteps.length)
       if (found) {
         setResult(found.analysis)
       } else {
@@ -31,10 +49,46 @@ export default function SentenceAnalyzer() {
           modifiers: [],
           keyWords: [],
           translation: '（自定义输入暂不支持深度解析，请选择预设例句）',
+          examTips: [
+            { tip: '建议选择左侧预设例句体验完整解析功能', type: '提示' },
+            { tip: '自定义解析功能即将上线，敬请期待', type: '提示' },
+          ],
         })
       }
       setAnalyzing(false)
-    }, 1500)
+      setCurrentStep(-1)
+    }, 2800)
+  }
+
+  const handleAnalyze = () => {
+    const text = input.trim() || (selectedExample && selectedExample.sentence) || ''
+    if (!text) {
+      setError('请输入要分析的英文句子')
+      return
+    }
+    doAnalyze(text)
+  }
+
+  const handleRegenerate = () => {
+    const text = input.trim() || (selectedExample && selectedExample.sentence) || ''
+    if (text) doAnalyze(text)
+  }
+
+  const handleCopy = (res) => {
+    const text = [
+      `句子主干：${res.main}`,
+      '',
+      ...(res.clauses || []).map((c) => `[${c.type}] ${c.text}（${c.desc}）`),
+      '',
+      ...(res.modifiers || []).map((m) => `[${m.type}] ${m.text}（${m.desc}）`),
+      '',
+      ...(res.keyWords || []).map((k) => `${k.word} — ${k.meaning}`),
+      '',
+      ...(res.examTips || []).map((t) => `【${t.type}】${t.tip}`),
+      '',
+      `中文翻译：${res.translation}`,
+    ].join('\n')
+    navigator.clipboard.writeText(text)
   }
 
   const loadExample = (item) => {
@@ -98,7 +152,12 @@ export default function SentenceAnalyzer() {
 
       {/* Example Sentences */}
       <div className="card p-5 sm:p-6 mb-6">
-        <h2 className="text-sm font-semibold text-slate-700 mb-3">📌 选择预设例句体验</h2>
+        <h2 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          选择预设例句体验
+        </h2>
         <div className="space-y-2.5">
           {sentenceLibrary.map((item, i) => (
             <button
@@ -120,23 +179,72 @@ export default function SentenceAnalyzer() {
         </div>
       </div>
 
-      {/* Loading State */}
+      {/* Step-by-step Loading State */}
       {analyzing && (
-        <div className="card p-10 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-14 h-14 rounded-full border-[3px] border-indigo-100 border-t-indigo-600 animate-spin mx-auto mb-5" />
-            <p className="text-slate-600 font-medium">AI 正在解析句子结构...</p>
-            <div className="flex items-center gap-2 mt-4 justify-center">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="card p-8 sm:p-10">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 animate-pulse">
+                AI
+              </div>
+              <div>
+                <p className="text-slate-700 font-semibold">AI 正在深度解析...</p>
+                <p className="text-slate-400 text-xs mt-0.5">正在逐层拆解句子结构</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {analysisSteps.map((step, i) => {
+                const isDone = i < currentStep
+                const isActive = i === currentStep
+                return (
+                  <div key={step.key} className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                      isDone
+                        ? 'bg-emerald-500'
+                        : isActive
+                          ? 'bg-indigo-600 ring-4 ring-indigo-100'
+                          : 'bg-slate-200'
+                    }`}>
+                      {isDone ? (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : isActive ? (
+                        <div className="w-2 h-2 bg-white rounded-full" />
+                      ) : null}
+                    </div>
+                    <span className={`text-sm transition-all duration-300 ${
+                      isDone
+                        ? 'text-emerald-600 font-medium'
+                        : isActive
+                          ? 'text-indigo-700 font-semibold'
+                          : 'text-slate-400'
+                    }`}>
+                      {step.label}
+                    </span>
+                    {isActive && (
+                      <div className="flex gap-1 ml-auto">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       )}
 
       {/* Result */}
-      {result && !analyzing && <AnalyzerResult result={result} />}
+      {result && !analyzing && (
+        <AnalyzerResult
+          result={result}
+          onRegenerate={handleRegenerate}
+          onCopy={handleCopy}
+        />
+      )}
 
       {/* Empty State */}
       {!result && !analyzing && (

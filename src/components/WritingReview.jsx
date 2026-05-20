@@ -3,20 +3,66 @@ import { writingData, mockWritingReview } from '../data/mockData'
 import WritingFeedback from './WritingFeedback'
 import PageHeader from './ui/PageHeader'
 
+const reviewSteps = [
+  { label: '正在评估作文水平...', key: 'scoring' },
+  { label: '正在检测语法错误...', key: 'grammar' },
+  { label: '正在分析表达质量...', key: 'quality' },
+  { label: '正在生成修改建议...', key: 'suggestions' },
+  { label: '正在润色范文...', key: 'polish' },
+  { label: '正在生成评分报告...', key: 'report' },
+]
+
 export default function WritingReview() {
   const [essay, setEssay] = useState('')
   const [reviewing, setReviewing] = useState(false)
   const [result, setResult] = useState(null)
+  const [currentStep, setCurrentStep] = useState(-1)
 
-  const handleReview = () => {
+  const doReview = () => {
     if (!essay.trim()) return
     setReviewing(true)
     setResult(null)
+    setCurrentStep(0)
+
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < reviewSteps.length - 1) return prev + 1
+        clearInterval(stepInterval)
+        return prev
+      })
+    }, 350)
 
     setTimeout(() => {
+      clearInterval(stepInterval)
+      setCurrentStep(reviewSteps.length)
       setResult(mockWritingReview)
       setReviewing(false)
-    }, 2000)
+      setCurrentStep(-1)
+    }, 2400)
+  }
+
+  const handleReview = () => {
+    doReview()
+  }
+
+  const handleRegenerate = () => {
+    doReview()
+  }
+
+  const handleCopy = (res) => {
+    const text = [
+      `AI 评分：${res.score}/${res.totalScore}（${res.level}）`,
+      '',
+      '== 语法问题 ==',
+      ...res.grammarIssues.map((g) => `[${g.severity === 'major' ? '严重' : '轻微'}] ${g.type}: ${g.original} → ${g.suggestion}`),
+      '',
+      '== 高级替换 ==',
+      ...res.improvements.map((imp) => `${imp.original} → ${imp.advanced}（${imp.note}）`),
+      '',
+      '== 修改后范文 ==',
+      res.revisedEssay,
+    ].join('\n')
+    navigator.clipboard.writeText(text)
   }
 
   const loadSample = () => {
@@ -111,17 +157,71 @@ export default function WritingReview() {
 
         {/* Right: Results */}
         <div>
+          {/* Step-by-step Loading */}
           {reviewing && (
-            <div className="card p-10 flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full border-[3px] border-indigo-100 border-t-indigo-600 animate-spin mx-auto mb-5" />
-                <p className="text-slate-600 font-medium">AI 正在批改你的作文...</p>
-                <p className="text-slate-400 text-sm mt-2">正在检测语法错误、分析表达水平</p>
+            <div className="card p-8 sm:p-10 min-h-[400px]">
+              <div className="max-w-sm mx-auto">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200 animate-pulse">
+                    AI
+                  </div>
+                  <div>
+                    <p className="text-slate-700 font-semibold">AI 正在批改作文...</p>
+                    <p className="text-slate-400 text-xs mt-0.5">逐项分析你的作文内容</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {reviewSteps.map((step, i) => {
+                    const isDone = i < currentStep
+                    const isActive = i === currentStep
+                    return (
+                      <div key={step.key} className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                          isDone
+                            ? 'bg-emerald-500'
+                            : isActive
+                              ? 'bg-indigo-600 ring-4 ring-indigo-100'
+                              : 'bg-slate-200'
+                        }`}>
+                          {isDone ? (
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : isActive ? (
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          ) : null}
+                        </div>
+                        <span className={`text-sm transition-all duration-300 ${
+                          isDone
+                            ? 'text-emerald-600 font-medium'
+                            : isActive
+                              ? 'text-indigo-700 font-semibold'
+                              : 'text-slate-400'
+                        }`}>
+                          {step.label}
+                        </span>
+                        {isActive && (
+                          <div className="flex gap-1 ml-auto">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
 
-          {result && !reviewing && <WritingFeedback result={result} />}
+          {result && !reviewing && (
+            <WritingFeedback
+              result={result}
+              onRegenerate={handleRegenerate}
+              onCopy={handleCopy}
+            />
+          )}
 
           {!result && !reviewing && (
             <div className="card p-12 text-center min-h-[400px] flex flex-col items-center justify-center">

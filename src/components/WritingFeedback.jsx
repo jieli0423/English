@@ -6,15 +6,49 @@ const tabs = [
   { key: 'revised', label: '修改范文', icon: '📝' },
 ]
 
-export default function WritingFeedback({ result }) {
+export default function WritingFeedback({ result, onRegenerate, onCopy }) {
   const [activeTab, setActiveTab] = useState('grammar')
+  const [copyText, setCopyText] = useState('复制结果')
 
   const scorePercent = (result.score / result.totalScore) * 100
 
+  const handleCopy = () => {
+    if (onCopy) {
+      onCopy(result)
+      return
+    }
+    const text = [
+      `AI 评分：${result.score}/${result.totalScore}（${result.level}）`,
+      '',
+      '== 语法问题 ==',
+      ...result.grammarIssues.map((g) => `[${g.severity === 'major' ? '严重' : '轻微'}] ${g.type}: ${g.original} → ${g.suggestion}`),
+      '',
+      '== 高级替换 ==',
+      ...result.improvements.map((imp) => `${imp.original} → ${imp.advanced}（${imp.note}）`),
+      '',
+      '== 修改后范文 ==',
+      result.revisedEssay,
+    ].join('\n')
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyText('已复制!')
+      setTimeout(() => setCopyText('复制结果'), 2000)
+    })
+  }
+
   return (
-    <div className="animate-slide-up">
+    <div className="animate-slide-up space-y-4">
+      {/* AI 助手提示条 */}
+      <div className="card p-4 bg-gradient-to-r from-indigo-50 to-indigo-100/30 border border-indigo-100 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm">
+          AI
+        </div>
+        <p className="text-sm text-indigo-700 leading-relaxed">
+          <span className="font-semibold">AI 批改完成</span> — 已为你检测语法错误并提供高级表达替换。点击下方"复制结果"可保存完整批改报告。
+        </p>
+      </div>
+
       {/* Score Card */}
-      <div className="card p-6 mb-4 text-center bg-gradient-to-br from-indigo-600 to-indigo-700 text-white border-0 shadow-lg shadow-indigo-600/20">
+      <div className="card p-6 text-center bg-gradient-to-br from-indigo-600 to-indigo-700 text-white border-0 shadow-lg shadow-indigo-600/20">
         <p className="text-sm text-indigo-200 mb-2 font-medium">AI 评分</p>
         <div className="flex items-baseline justify-center gap-1">
           <span className="text-5xl font-bold tracking-tight">{result.score}</span>
@@ -129,6 +163,30 @@ export default function WritingFeedback({ result }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="flex items-center gap-3 pt-1">
+        {onRegenerate && (
+          <button
+            onClick={onRegenerate}
+            className="btn-secondary flex items-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            重新生成
+          </button>
+        )}
+        <button
+          onClick={handleCopy}
+          className="btn-secondary flex items-center gap-2 text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          {copyText}
+        </button>
       </div>
     </div>
   )
