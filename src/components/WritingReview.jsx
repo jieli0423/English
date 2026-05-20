@@ -42,16 +42,7 @@ export default function WritingReview() {
       const data = await reviewWriting(essay)
       clearInterval(stepInterval)
       setCurrentStep(reviewSteps.length)
-
-      setResult({
-        score: data.score ?? mockWritingReview.score,
-        totalScore: data.totalScore ?? mockWritingReview.totalScore,
-        level: data.level || mockWritingReview.level,
-        grammarIssues: data.grammarIssues || [],
-        improvements: data.improvements || [],
-        revisedEssay: data.revisedEssay || '',
-        overallAdvice: data.overallAdvice || '',
-      })
+      setResult(data)
     } catch (err) {
       clearInterval(stepInterval)
       setCurrentStep(reviewSteps.length)

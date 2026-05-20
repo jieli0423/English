@@ -6,11 +6,21 @@ const tabs = [
   { key: 'revised', label: '修改范文', icon: '📝' },
 ]
 
+const levelConfig = {
+  '优秀': { color: 'emerald', bg: 'from-emerald-600 to-emerald-700', shadow: 'shadow-emerald-600/20', text: 'text-emerald-200', label: '非常出色，保持水平！' },
+  '良好': { color: 'blue', bg: 'from-blue-600 to-blue-700', shadow: 'shadow-blue-600/20', text: 'text-blue-200', label: '基础扎实，仍有提升空间' },
+  '一般': { color: 'indigo', bg: 'from-indigo-600 to-indigo-700', shadow: 'shadow-indigo-600/20', text: 'text-indigo-200', label: '需要加强练习，查漏补缺' },
+  '较差': { color: 'amber', bg: 'from-amber-600 to-amber-700', shadow: 'shadow-amber-600/20', text: 'text-amber-200', label: '基础薄弱，建议系统复习' },
+}
+
 export default function WritingFeedback({ result, onRegenerate, onCopy }) {
   const [activeTab, setActiveTab] = useState('grammar')
   const [copyText, setCopyText] = useState('复制结果')
 
-  const scorePercent = (result.score / result.totalScore) * 100
+  const scorePercent = result.totalScore > 0 ? (result.score / result.totalScore) * 100 : 0
+  const level = levelConfig[result.level] || levelConfig['一般']
+  const majorCount = result.grammarIssues.filter((g) => g.severity === 'major').length
+  const minorCount = result.grammarIssues.filter((g) => g.severity === 'minor').length
 
   const handleCopy = () => {
     if (onCopy) {
@@ -48,23 +58,24 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
       </div>
 
       {/* Score Card */}
-      <div className="card p-6 text-center bg-gradient-to-br from-indigo-600 to-indigo-700 text-white border-0 shadow-lg shadow-indigo-600/20">
-        <p className="text-sm text-indigo-200 mb-2 font-medium">AI 评分</p>
+      <div className={`card p-6 text-center bg-gradient-to-br ${level.bg} text-white border-0 shadow-lg ${level.shadow}`}>
+        <p className={`text-sm ${level.text} mb-2 font-medium flex items-center justify-center gap-2`}>
+          AI 评分
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white`}>
+            {result.level}
+          </span>
+        </p>
         <div className="flex items-baseline justify-center gap-1">
           <span className="text-5xl font-bold tracking-tight">{result.score}</span>
-          <span className="text-xl text-indigo-200">/ {result.totalScore}</span>
+          <span className={`text-xl ${level.text}`}>/ {result.totalScore}</span>
         </div>
-        <div className="w-full bg-indigo-500/30 rounded-full h-2.5 mt-4 overflow-hidden">
+        <div className="w-full bg-white/20 rounded-full h-2.5 mt-4 overflow-hidden">
           <div
             className="h-full rounded-full bg-white/80 transition-all duration-1000"
             style={{ width: `${scorePercent}%` }}
           />
         </div>
-        <div className="flex items-center justify-center gap-4 mt-3">
-          <span className="text-sm text-indigo-200">
-            等级：<span className="font-semibold text-white">{result.level}</span>
-          </span>
-        </div>
+        <p className={`text-sm ${level.text} mt-3`}>{level.label}</p>
       </div>
 
       {/* Tabs */}
@@ -82,6 +93,11 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
             >
               <span className="mr-1.5">{tab.icon}</span>
               {tab.label}
+              {tab.key === 'grammar' && result.grammarIssues.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-red-100 text-red-600">
+                  {result.grammarIssues.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -90,8 +106,27 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
           {/* Grammar Issues */}
           {activeTab === 'grammar' && (
             <div className="space-y-3 animate-fade-in">
+              {/* Summary badges */}
+              {result.grammarIssues.length > 0 && (
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {majorCount > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      严重错误 {majorCount} 处
+                    </span>
+                  )}
+                  {minorCount > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                      轻微问题 {minorCount} 处
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">共 {result.grammarIssues.length} 处问题</span>
+                </div>
+              )}
               {result.grammarIssues.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-6">🎉 暂无语法问题，语法使用很正确！</p>
+                <div className="text-center py-8">
+                  <p className="text-3xl mb-2">🎉</p>
+                  <p className="text-sm text-slate-500">暂无语法问题，语法使用很正确！</p>
+                </div>
               ) : (
                 result.grammarIssues.map((issue, i) => (
                   <div key={i} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
@@ -123,26 +158,39 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
           {/* Advanced Replacements */}
           {activeTab === 'improve' && (
             <div className="space-y-3 animate-fade-in">
-              {result.improvements.map((imp, i) => (
-                <div key={i} className="p-4 rounded-xl bg-gradient-to-r from-violet-50 to-violet-50/50 border border-violet-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-violet-700 uppercase tracking-wider">
-                      高级替换 #{i + 1}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-500 mb-1.5">
-                    <span className="line-through text-red-400">{imp.original}</span>
-                  </p>
-                  <p className="text-sm text-emerald-700 font-medium flex items-start gap-1">
-                    <span>→</span>
-                    <span>{imp.advanced}</span>
-                  </p>
-                  <p className="text-xs text-violet-500 mt-2 flex items-center gap-1">
-                    <span>💡</span>
-                    <span>{imp.note}</span>
-                  </p>
+              <p className="text-xs text-slate-400 mb-3">
+                以下是将你的原文表达升级为更高级、更地道的考研英语表达
+              </p>
+              {result.improvements.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-3xl mb-2">✨</p>
+                  <p className="text-sm text-slate-500">暂无高级替换建议</p>
                 </div>
-              ))}
+              ) : (
+                result.improvements.map((imp, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-gradient-to-r from-violet-50 to-violet-50/50 border border-violet-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-violet-700 uppercase tracking-wider">
+                        高级替换 #{i + 1}
+                      </span>
+                      <span className="text-xs text-violet-400">推荐</span>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-1.5">
+                      <span className="line-through text-red-400">{imp.original}</span>
+                    </p>
+                    <p className="text-sm text-emerald-700 font-medium flex items-start gap-1">
+                      <span className="text-emerald-500">→</span>
+                      <span>{imp.advanced}</span>
+                    </p>
+                    {imp.note && (
+                      <p className="text-xs text-violet-500 mt-2 flex items-start gap-1">
+                        <span className="text-violet-300 mt-0.5">💡</span>
+                        <span>{imp.note}</span>
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -153,13 +201,23 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                   修改后范文
                 </span>
-                <span className="text-xs text-slate-400">基于原文润色优化</span>
+                <span className="text-xs text-slate-400">基于原文润色优化，保留原意的同时提升表达质量</span>
               </div>
-              <div className="p-5 rounded-xl bg-emerald-50/80 border border-emerald-100">
-                <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
-                  {result.revisedEssay}
-                </p>
-              </div>
+              {result.revisedEssay ? (
+                <div className="p-5 rounded-xl bg-emerald-50/80 border border-emerald-100">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-3">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    优化后版本
+                  </div>
+                  <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+                    {result.revisedEssay}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic text-center py-8">暂无修改后的范文</p>
+              )}
             </div>
           )}
         </div>
@@ -168,13 +226,16 @@ export default function WritingFeedback({ result, onRegenerate, onCopy }) {
       {/* 整体建议 */}
       {result.overallAdvice && (
         <div className="card p-5 sm:p-6 border-l-4 border-l-indigo-500">
-          <h3 className="text-sm font-semibold text-indigo-700 mb-2 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-indigo-700 mb-1 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             整体建议
           </h3>
-          <p className="text-sm text-slate-700 leading-relaxed">{result.overallAdvice}</p>
+          <p className="text-xs text-indigo-400 mb-3 ml-6">针对本次作文的总结性提升建议</p>
+          <div className="bg-indigo-50/50 rounded-lg p-4 border border-indigo-100/50">
+            <p className="text-sm text-slate-700 leading-relaxed">{result.overallAdvice}</p>
+          </div>
         </div>
       )}
 

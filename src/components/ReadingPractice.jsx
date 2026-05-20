@@ -88,12 +88,7 @@ export default function ReadingPractice() {
           options: q.options,
         }))
       )
-      setAnalysis({
-        structure: data.structure || '',
-        paragraphSummaries: data.paragraphSummaries || [],
-        questionAnalysis: data.questionAnalysis || [],
-        generalTips: data.generalTips || [],
-      })
+      setAnalysis(data)
     } catch (err) {
       if (err.needConfig || err.status === 503) {
         setAnalysisError(API_MESSAGES.noKey)
@@ -330,7 +325,6 @@ export default function ReadingPractice() {
               <ReadingAnalysis
                 analysis={analysis}
                 onRegenerate={handleRegenerateAnalysis}
-                onCopy={handleCopyAnalysis}
               />
             </div>
           )}

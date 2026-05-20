@@ -49,27 +49,35 @@ export default function ReadingAnalysis({ analysis, onRegenerate }) {
 
       {/* 文章结构 */}
       <div className="card p-5 sm:p-6 border-l-4 border-l-indigo-500">
-        <h3 className="text-sm font-semibold text-indigo-700 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-indigo-700 mb-1 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
           </svg>
           文章结构分析
         </h3>
-        <p className="text-slate-700 leading-relaxed text-sm">{analysis.structure}</p>
+        <p className="text-xs text-indigo-400 mb-3 ml-6">整体行文脉络和逻辑结构概览</p>
+        {analysis.structure ? (
+          <div className="bg-indigo-50/50 rounded-lg p-4 border border-indigo-100/50">
+            <p className="text-slate-700 leading-relaxed text-sm">{analysis.structure}</p>
+          </div>
+        ) : (
+          <p className="text-slate-400 text-sm italic">暂无结构分析</p>
+        )}
       </div>
 
       {/* 段落主旨 */}
       {analysis.paragraphSummaries && analysis.paragraphSummaries.length > 0 && (
         <div className="card p-5 sm:p-6">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
             <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             段落主旨
           </h3>
+          <p className="text-xs text-slate-400 mb-3 ml-6">各段落核心内容概括</p>
           <div className="space-y-3">
             {analysis.paragraphSummaries.map((p) => (
-              <div key={p.index} className="flex gap-3">
+              <div key={p.index} className="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex-shrink-0 mt-0.5">
                   {p.index}
                 </span>
@@ -83,12 +91,13 @@ export default function ReadingAnalysis({ analysis, onRegenerate }) {
       {/* 逐题精讲 */}
       {analysis.questionAnalysis && analysis.questionAnalysis.length > 0 && (
         <div className="card p-5 sm:p-6">
-          <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
             <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             逐题精讲
           </h3>
+          <p className="text-xs text-slate-400 mb-4 ml-6">每道题的定位、解析、错因和解题技巧</p>
           <div className="space-y-4">
             {analysis.questionAnalysis.map((q) => (
               <div key={q.questionIndex} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
@@ -107,26 +116,42 @@ export default function ReadingAnalysis({ analysis, onRegenerate }) {
 
                 {/* 定位句 */}
                 <div className="mb-3 p-3 rounded-lg bg-white border border-slate-100">
-                  <p className="text-xs font-medium text-indigo-600 mb-1">📍 原文定位句</p>
+                  <p className="text-xs font-medium text-indigo-600 mb-1 flex items-center gap-1">
+                    <span>📍</span> 原文定位句
+                  </p>
                   <p className="text-sm text-slate-700 leading-relaxed">{q.locatingSentence}</p>
                 </div>
 
                 {/* 解析 */}
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-emerald-600 mb-1">✅ 答案解析</p>
-                  <p className="text-sm text-slate-700 leading-relaxed">{q.explanation}</p>
-                </div>
+                {q.explanation && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1">
+                      <span>✅</span> 答案解析
+                    </p>
+                    <p className="text-sm text-slate-700 leading-relaxed p-3 rounded-lg bg-emerald-50/50 border border-emerald-100/50">
+                      {q.explanation}
+                    </p>
+                  </div>
+                )}
 
                 {/* 错因分析 */}
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-red-600 mb-1">❌ 错因分析</p>
-                  <p className="text-sm text-slate-600 leading-relaxed">{q.errorAnalysis}</p>
-                </div>
+                {q.errorAnalysis && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-red-600 mb-1 flex items-center gap-1">
+                      <span>❌</span> 错因分析
+                    </p>
+                    <p className="text-sm text-slate-600 leading-relaxed p-3 rounded-lg bg-red-50/50 border border-red-100/50">
+                      {q.errorAnalysis}
+                    </p>
+                  </div>
+                )}
 
                 {/* 解题技巧 */}
                 {q.tips && (
                   <div className="p-3 rounded-lg bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-100">
-                    <p className="text-xs font-medium text-amber-700 mb-1">💡 解题技巧</p>
+                    <p className="text-xs font-medium text-amber-700 mb-1 flex items-center gap-1">
+                      <span>💡</span> 解题技巧
+                    </p>
                     <p className="text-sm text-amber-800 leading-relaxed">{q.tips}</p>
                   </div>
                 )}
@@ -147,7 +172,10 @@ export default function ReadingAnalysis({ analysis, onRegenerate }) {
               <svg className="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              考研阅读通用技巧（{analysis.generalTips.length} 条）
+              考研阅读通用技巧
+              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-600 ml-1">
+                {analysis.generalTips.length} 条
+              </span>
             </span>
             <svg className={`w-4 h-4 text-slate-400 transition-transform ${expandedTips ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -156,7 +184,7 @@ export default function ReadingAnalysis({ analysis, onRegenerate }) {
           {expandedTips && (
             <div className="mt-4 space-y-2.5 animate-slide-up">
               {analysis.generalTips.map((tip, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                <div key={i} className="flex items-start gap-2 text-sm text-slate-700 p-3 rounded-lg bg-violet-50/50 border border-violet-100/50">
                   <span className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
                     {i + 1}
                   </span>

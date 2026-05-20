@@ -1,12 +1,13 @@
 import { useState } from 'react'
 
-function Section({ title, icon, children, className = '' }) {
+function Section({ title, desc, icon, children, className = '' }) {
   return (
     <div className={`card p-5 sm:p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
         {icon}
         {title}
       </h3>
+      {desc && <p className="text-xs text-slate-400 mb-3 ml-6">{desc}</p>}
       {children}
     </div>
   )
@@ -49,21 +50,29 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
 
       {/* 主干结构 */}
       <div className="card p-5 sm:p-6 border-l-4 border-l-indigo-500">
-        <h3 className="text-sm font-semibold text-indigo-700 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-indigo-700 mb-1 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
           </svg>
           句子主干
         </h3>
-        <p className="text-slate-800 font-medium leading-relaxed text-base">{result.main}</p>
+        <p className="text-xs text-indigo-400 mb-3 ml-6">去除修饰成分后的核心主谓宾/主系表结构</p>
+        {result.main ? (
+          <p className="text-slate-800 font-medium leading-relaxed text-base bg-indigo-50/50 rounded-lg p-3 border border-indigo-100/50">
+            {result.main}
+          </p>
+        ) : (
+          <p className="text-slate-400 text-sm italic">暂无主干分析</p>
+        )}
       </div>
 
       {/* 从句分析 */}
       {result.clauses && result.clauses.length > 0 && (
         <Section
           title="从句分析"
+          desc="识别句子中的各类从句及其语法功能"
           icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
@@ -75,9 +84,15 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
                     {clause.type}
                   </span>
+                  <span className="text-xs text-slate-400">#{i + 1}</span>
                 </div>
-                <p className="text-sm text-slate-800 leading-relaxed">{clause.text}</p>
-                <p className="text-xs text-slate-500 mt-1">{clause.desc}</p>
+                <p className="text-sm text-slate-800 leading-relaxed font-medium">{clause.text}</p>
+                {clause.desc && (
+                  <p className="text-xs text-slate-500 mt-1.5 flex items-start gap-1">
+                    <span className="text-slate-300 mt-0.5">→</span>
+                    <span>{clause.desc}</span>
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -88,8 +103,9 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
       {result.modifiers && result.modifiers.length > 0 && (
         <Section
           title="修饰成分"
+          desc="定语、状语、补语等修饰性短语分析"
           icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
             </svg>
           }
@@ -101,7 +117,9 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
                   {mod.type}
                 </span>
                 <p className="text-sm text-slate-800 leading-relaxed">{mod.text}</p>
-                <p className="text-xs text-slate-500 mt-1">{mod.desc}</p>
+                {mod.desc && (
+                  <p className="text-xs text-slate-500 mt-1">{mod.desc}</p>
+                )}
               </div>
             ))}
           </div>
@@ -112,8 +130,9 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
       {result.keyWords && result.keyWords.length > 0 && (
         <Section
           title="重点词汇"
+          desc="考研核心高频词汇，需重点掌握"
           icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
           }
@@ -133,8 +152,9 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
       {result.examTips && result.examTips.length > 0 && (
         <Section
           title="考研考点"
+          desc="该句子涉及的考研英语核心语法考点"
           icon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           }
@@ -155,13 +175,16 @@ export default function AnalyzerResult({ result, onRegenerate, onCopy }) {
       {/* 中文翻译 */}
       {result.translation && (
         <div className="card p-5 sm:p-6 border-l-4 border-l-emerald-500">
-          <h3 className="text-sm font-semibold text-emerald-700 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-emerald-700 mb-1 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
             </svg>
             中文翻译
           </h3>
-          <p className="text-slate-700 leading-relaxed">{result.translation}</p>
+          <p className="text-xs text-emerald-500 mb-3 ml-6">整句通顺的中文翻译</p>
+          <p className="text-slate-700 leading-relaxed bg-emerald-50/50 rounded-lg p-3 border border-emerald-100/50">
+            {result.translation}
+          </p>
         </div>
       )}
 

@@ -61,16 +61,7 @@ export default function SentenceAnalyzer() {
       const data = await analyzeSentence(text)
       clearInterval(stepInterval)
       setCurrentStep(analysisSteps.length)
-
-      // Ensure arrays exist for component compatibility
-      setResult({
-        main: data.main || '',
-        clauses: data.clauses || [],
-        modifiers: data.modifiers || [],
-        keyWords: data.keyWords || [],
-        translation: data.translation || '',
-        examTips: data.examTips || [],
-      })
+      setResult(data)
     } catch (err) {
       clearInterval(stepInterval)
       setCurrentStep(analysisSteps.length)

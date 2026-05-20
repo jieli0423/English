@@ -11,6 +11,54 @@ app.use(express.json({ limit: '1mb' }))
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
 const API_KEY = process.env.DEEPSEEK_API_KEY
 
+/**
+ * Fault-tolerant JSON parsing: handles markdown code blocks, trailing text, etc.
+ */
+function safeJSONParse(text) {
+  if (!text) throw new Error('Empty response')
+
+  // Try direct parse first
+  try {
+    return JSON.parse(text)
+  } catch { /* fall through */ }
+
+  // Try extracting JSON from markdown code blocks: ```json ... ```
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim())
+    } catch { /* fall through */ }
+  }
+
+  // Try finding a JSON object with regex: {...}
+  const objectMatch = text.match(/\{[\s\S]*\}/)
+  if (objectMatch) {
+    try {
+      return JSON.parse(objectMatch[0])
+    } catch { /* fall through */ }
+  }
+
+  // Try finding a JSON array with regex: [...]
+  const arrayMatch = text.match(/\[[\s\S]*\]/)
+  if (arrayMatch) {
+    try {
+      return JSON.parse(arrayMatch[0])
+    } catch { /* fall through */ }
+  }
+
+  // Last resort: try to fix common issues (single quotes, trailing commas)
+  const cleaned = text
+    .replace(/'/g, '"')             // replace single quotes with double
+    .replace(/,\s*}/g, '}')         // remove trailing commas in objects
+    .replace(/,\s*\]/g, ']')        // remove trailing commas in arrays
+    .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')  // quote unquoted keys
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    throw new Error('AI returned non-JSON response that could not be parsed')
+  }
+}
+
 function buildSystemPrompt(type) {
   if (type === 'analyze-sentence') {
     return `你是一名专业的考研英语语法分析专家。请分析用户输入的英文句子，并严格按以下 JSON 格式返回（不要包含 markdown 代码块标记）：
@@ -142,14 +190,12 @@ app.post('/api/analyze-sentence', async (req, res) => {
       return res.status(502).json({ error: 'DeepSeek API 返回内容为空' })
     }
 
-    let parsed
     try {
-      parsed = JSON.parse(content)
+      const parsed = safeJSONParse(content)
+      res.json(parsed)
     } catch {
       return res.status(502).json({ error: 'AI 返回格式异常，请重试' })
     }
-
-    res.json(parsed)
   } catch (err) {
     console.error('Request failed:', err.message)
     res.status(502).json({ error: `请求 DeepSeek API 失败：${err.message}` })
@@ -201,14 +247,12 @@ app.post('/api/review-writing', async (req, res) => {
       return res.status(502).json({ error: 'DeepSeek API 返回内容为空' })
     }
 
-    let parsed
     try {
-      parsed = JSON.parse(content)
+      const parsed = safeJSONParse(content)
+      res.json(parsed)
     } catch {
       return res.status(502).json({ error: 'AI 返回格式异常，请重试' })
     }
-
-    res.json(parsed)
   } catch (err) {
     console.error('Request failed:', err.message)
     res.status(502).json({ error: `请求 DeepSeek API 失败：${err.message}` })
@@ -262,14 +306,12 @@ app.post('/api/analyze-reading', async (req, res) => {
       return res.status(502).json({ error: 'DeepSeek API 返回内容为空' })
     }
 
-    let parsed
     try {
-      parsed = JSON.parse(content)
+      const parsed = safeJSONParse(content)
+      res.json(parsed)
     } catch {
       return res.status(502).json({ error: 'AI 返回格式异常，请重试' })
     }
-
-    res.json(parsed)
   } catch (err) {
     console.error('Request failed:', err.message)
     res.status(502).json({ error: `请求 DeepSeek API 失败：${err.message}` })

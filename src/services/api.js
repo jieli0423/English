@@ -7,26 +7,70 @@ async function fetchAPI(endpoint, body) {
     body: JSON.stringify(body),
   })
 
-  const data = await res.json()
+  let data
+  try {
+    data = await res.json()
+  } catch {
+    throw new Error('服务器返回了非 JSON 格式的数据')
+  }
 
   if (!res.ok) {
-    const err = new Error(data.error || `请求失败 (${res.status})`)
+    const err = new Error(data?.error || `请求失败 (${res.status})`)
     err.status = res.status
-    err.needConfig = data.needConfig
+    err.needConfig = data?.needConfig
     throw err
   }
 
   return data
 }
 
+/** Normalizers: ensure stable JSON structure for each endpoint */
+function normalizeSentenceAnalysis(data) {
+  if (!data || typeof data !== 'object') throw new Error('无效的句子分析结果')
+  return {
+    main: data.main || '',
+    clauses: Array.isArray(data.clauses) ? data.clauses : [],
+    modifiers: Array.isArray(data.modifiers) ? data.modifiers : [],
+    keyWords: Array.isArray(data.keyWords) ? data.keyWords : [],
+    translation: data.translation || '',
+    examTips: Array.isArray(data.examTips) ? data.examTips : [],
+  }
+}
+
+function normalizeWritingReview(data) {
+  if (!data || typeof data !== 'object') throw new Error('无效的作文批改结果')
+  return {
+    score: typeof data.score === 'number' ? data.score : 0,
+    totalScore: typeof data.totalScore === 'number' ? data.totalScore : 20,
+    level: data.level || '未评级',
+    grammarIssues: Array.isArray(data.grammarIssues) ? data.grammarIssues : [],
+    improvements: Array.isArray(data.improvements) ? data.improvements : [],
+    revisedEssay: data.revisedEssay || '',
+    overallAdvice: data.overallAdvice || '',
+  }
+}
+
+function normalizeReadingAnalysis(data) {
+  if (!data || typeof data !== 'object') throw new Error('无效的阅读分析结果')
+  return {
+    structure: data.structure || '',
+    paragraphSummaries: Array.isArray(data.paragraphSummaries) ? data.paragraphSummaries : [],
+    questionAnalysis: Array.isArray(data.questionAnalysis) ? data.questionAnalysis : [],
+    generalTips: Array.isArray(data.generalTips) ? data.generalTips : [],
+  }
+}
+
 export async function analyzeSentence(sentence) {
-  return fetchAPI('analyze-sentence', { sentence })
+  const raw = await fetchAPI('analyze-sentence', { sentence })
+  return normalizeSentenceAnalysis(raw)
 }
 
 export async function reviewWriting(essay) {
-  return fetchAPI('review-writing', { essay })
+  const raw = await fetchAPI('review-writing', { essay })
+  return normalizeWritingReview(raw)
 }
 
 export async function analyzeReading(passage, questions) {
-  return fetchAPI('analyze-reading', { passage, questions })
+  const raw = await fetchAPI('analyze-reading', { passage, questions })
+  return normalizeReadingAnalysis(raw)
 }
