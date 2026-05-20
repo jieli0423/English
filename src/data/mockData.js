@@ -1,65 +1,3 @@
-// ========== 首页仪表盘 ==========
-export const dashboardData = {
-  userName: '研友小明',
-  dailyGoal: '掌握 50 个考研核心高频词汇',
-  stats: {
-    streak: 15,
-    level: 'Lv.6 · 考研达人',
-    tasksCompleted: 4,
-    tasksTotal: 6,
-    studyHours: 128,
-    wordsMastered: 342,
-    readingAccuracy: 78,
-    writingAvgScore: 16.5,
-  },
-  progress: 68,
-  todayTasks: [
-    { id: 1, title: '考研核心词汇 50 个', completed: true, category: '词汇' },
-    { id: 2, title: '长难句分析 3 句', completed: true, category: '语法' },
-    { id: 3, title: '2018 年阅读 Text 2', completed: true, category: '阅读' },
-    { id: 4, title: '大作文模板背诵', completed: true, category: '写作' },
-    { id: 5, title: '完形填空练习', completed: false, category: '综合' },
-    { id: 6, title: '翻译真题练习', completed: false, category: '翻译' },
-  ],
-  recentRecords: [
-    { id: 1, action: '📚 单词学习', detail: '完成 significant, inevitable, phenomenon 等 10 个单词', time: '09:30', duration: '25 分钟' },
-    { id: 2, action: '🔍 长难句解析', detail: 'AI 解析 3 个考研长难句', time: '10:00', duration: '15 分钟' },
-    { id: 3, action: '📖 阅读训练', detail: '完成 AI and Future of Work 4 道阅读题', time: '14:30', duration: '30 分钟' },
-    { id: 4, action: '✍️ 作文练习', detail: '背诵大作文模板', time: '16:00', duration: '20 分钟' },
-  ],
-  continueLearning: {
-    title: '长难句分析：定语从句的识别与翻译',
-    subtitle: '让步状语从句 · 插入语 · 定语从句',
-    link: '/sentence-analyzer',
-  },
-  recommendations: [
-    {
-      id: 1,
-      title: 'AI 长难句深度解析',
-      desc: '攻克 5 个考研高频难点句式',
-      icon: '📖',
-      color: 'from-indigo-500 to-blue-600',
-      link: '/sentence-analyzer',
-    },
-    {
-      id: 2,
-      title: '2024 阅读真题精练',
-      desc: 'Text 1-4 全真模拟+逐题精讲',
-      icon: '📝',
-      color: 'from-emerald-500 to-teal-600',
-      link: '/reading',
-    },
-    {
-      id: 3,
-      title: '大作文 AI 批改',
-      desc: '智能评分+高级表达润色替换',
-      icon: '✍️',
-      color: 'from-violet-500 to-purple-600',
-      link: '/writing',
-    },
-  ],
-}
-
 // ========== 单词库 ==========
 export const vocabularyData = [
   { id: 1, word: 'significant', phonetic: '/sɪɡˈnɪfɪkənt/', meaning: 'adj. 重要的；有意义的；显著的', example: 'The study found a significant correlation between exercise and mental health.', exampleTrans: '研究发现锻炼与心理健康之间存在显著的相关性。', root: 'sign（标记）+ i + fic（做）+ ant（形容词后缀）→ 做出标记的 → 显著的', confusing: [{ word: 'insignificant', meaning: 'adj. 不重要的，微不足道的' }, { word: 'significance', meaning: 'n. 重要性，意义' }, { word: 'signify', meaning: 'v. 表示，意味着' }], masterLevel: 0, isNew: false },
@@ -346,22 +284,4 @@ export const mockWritingReview = {
 The picture is intended to convey a profound message that although technological advancement has revolutionized the way we live, offering unprecedented convenience and connectivity, we must not lose sight of the importance of preserving our traditional cultural identity. In contemporary society, an increasing number of young individuals are gradually becoming estranged from their cultural roots, a trend that deserves serious reflection.
 
 From my perspective, it is imperative to strike a harmonious balance between embracing technological progress and safeguarding cultural traditions. Rather than allowing technology to erode our cultural identity, we should harness it as a powerful tool to revitalize and disseminate our heritage. Only through such concerted efforts can we ensure that our rich cultural legacy continues to flourish in this digital era.`,
-}
-
-// ========== 学习等级配置 ==========
-export const levelConfig = {
-  current: 6,
-  title: '考研达人',
-  xp: 2840,
-  xpNext: 4000,
-  milestones: [
-    { level: 1, title: '考研萌新' },
-    { level: 2, title: '初窥门径' },
-    { level: 3, title: '渐入佳境' },
-    { level: 4, title: '小有所成' },
-    { level: 5, title: '厚积薄发' },
-    { level: 6, title: '考研达人' },
-    { level: 7, title: '炉火纯青' },
-    { level: 8, title: '登峰造极' },
-  ],
 }
