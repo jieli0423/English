@@ -89,13 +89,9 @@ export default function Vocabulary() {
                 className={`
                   py-3 px-4 rounded-xl border-2 font-medium text-sm transition-all duration-200
                   ${isActive ? level.activeColor : level.color}
-                  ${isActive ? 'ring-2 ring-offset-2 shadow-md' : 'hover:shadow-sm'}
+                  ${isActive ? 'ring-2 ring-offset-2 shadow-md' : 'hover:shadow-sm active:scale-[0.97]'}
+                  active:scale-[0.97]
                 `}
-                style={isActive ? {
-                  ringColor: level.activeColor.includes('red') ? '#ef4444' :
-                            level.activeColor.includes('amber') ? '#f59e0b' :
-                            level.activeColor.includes('blue') ? '#3b82f6' : '#10b981'
-                } : {}}
               >
                 {level.label}
               </button>

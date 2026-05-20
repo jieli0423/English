@@ -8,6 +8,9 @@ export const dashboardData = {
     tasksCompleted: 4,
     tasksTotal: 6,
     studyHours: 128,
+    wordsMastered: 342,
+    readingAccuracy: 78,
+    writingAvgScore: 16.5,
   },
   progress: 68,
   todayTasks: [

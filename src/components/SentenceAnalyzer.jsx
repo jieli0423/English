@@ -111,6 +111,7 @@ export default function SentenceAnalyzer() {
                   ? 'border-indigo-300 bg-indigo-50 text-indigo-900 shadow-sm'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/50'
                 }
+                active:scale-[0.98]
               `}
             >
               <span className="line-clamp-2">{item.sentence.slice(0, 120)}...</span>

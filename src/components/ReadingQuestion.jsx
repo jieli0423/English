@@ -36,8 +36,9 @@ export default function ReadingQuestion({ question, index, selected, showResult,
                     ? 'bg-red-50 border-red-300 text-red-800'
                     : isSelected
                       ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30 active:scale-[0.98]'
                 }
+                active:scale-[0.98]
               `}
             >
               <span className="font-medium mr-2">{String.fromCharCode(65 + oi)}.</span>

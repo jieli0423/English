@@ -43,6 +43,7 @@ export default function WritingFeedback({ result }) {
               className={`
                 flex-1 py-3.5 text-sm font-medium transition-all duration-200 relative
                 ${activeTab === tab.key ? 'text-indigo-600 bg-white' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}
+                active:scale-[0.97]
               `}
             >
               <span className="mr-1.5">{tab.icon}</span>
